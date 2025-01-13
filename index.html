@@ -175,6 +175,14 @@
             font-size: 1rem;
             font-weight: bold;
         }
+
+        .daily-target {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -216,12 +224,18 @@
         </div>
 
         <div class="transaction-summary" id="transactionSummary">Entrées : 0 € / Sorties : 0 €</div>
+        <div class="daily-target" id="dailyTarget">Objectif journalier restant : 0 €</div>
     </div>
 
     <script>
         const API_URL = "https://ski-api-wkyg.onrender.com";
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get("token");
+
+        const targetDate = new Date("2025-02-15T00:00:00").getTime();
+        let totalInflows = 0;
+        let totalOutflows = 0;
+        const targetAmount = 1000; // Montant à atteindre
 
         if (!token) {
             alert("Token manquant. Ajoutez ?token=VOTRE_TOKEN à l'URL.");
@@ -282,8 +296,8 @@
             const transactionList = document.getElementById("transactionList");
             transactionList.innerHTML = "";
 
-            let totalInflows = 0;
-            let totalOutflows = 0;
+            totalInflows = 0;
+            totalOutflows = 0;
 
             transactions.forEach((transaction) => {
                 const li = document.createElement("li");
@@ -302,6 +316,7 @@
                 `Entrées : ${totalInflows.toFixed(2)} € / Sorties : ${totalOutflows.toFixed(2)} €`;
 
             updateProgressBar(totalInflows, totalOutflows);
+            updateDailyTarget();
         }
 
         function updateProgressBar(totalInflows, totalOutflows) {
@@ -311,7 +326,6 @@
         }
 
         function updateCountdown() {
-            const targetDate = new Date("2025-02-15T00:00:00").getTime();
             const now = Date.now();
             const timeLeft = targetDate - now;
             if (timeLeft <= 0) {
@@ -329,6 +343,17 @@
             document.getElementById("hours").textContent = String(hours).padStart(2, '0');
             document.getElementById("minutes").textContent = String(minutes).padStart(2, '0');
             document.getElementById("seconds").textContent = String(seconds).padStart(2, '0');
+
+            return days;
+        }
+
+        function updateDailyTarget() {
+            const daysLeft = updateCountdown();
+            const remainingAmount = targetAmount - totalInflows;
+            const dailyTarget = remainingAmount > 0 && daysLeft > 0 ? remainingAmount / daysLeft : 0;
+
+            document.getElementById("dailyTarget").textContent = 
+                `Objectif journalier restant : ${dailyTarget.toFixed(2)} €`;
         }
 
         const countdownInterval = setInterval(updateCountdown, 1000);
