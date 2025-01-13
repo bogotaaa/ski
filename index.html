@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des Transactions</title>
     <style>
+        /* Structure de la page */
         body {
             font-family: Arial, sans-serif;
             display: flex;
@@ -15,18 +16,79 @@
             margin: 0;
             background: #f4f4f4;
             padding: 20px;
+            box-sizing: border-box;
         }
 
-        h1 {
+        .countdown {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .card-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             text-align: center;
-            margin-bottom: 20px;
+            flex: 1;
         }
 
-        .error {
-            color: red;
+        .card {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #333;
+            color: white;
+            width: 20vw;
+            height: 25vw;
+            max-width: 80px;
+            max-height: 100px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            font-size: 6vw;
             font-weight: bold;
-            margin-top: 20px;
-            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .label {
+            font-size: 0.9rem;
+            color: #333;
+            text-transform: uppercase;
+        }
+
+        .progress-container {
+            width: 100%;
+            max-width: 400px;
+            height: 40px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background: #4caf50;
+            transition: width 0.5s ease;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #333;
         }
 
         .transactions {
@@ -38,173 +100,180 @@
             text-align: center;
         }
 
-        .transactions ul {
-            list-style: none;
-            padding: 0;
-            margin: 20px 0;
-        }
-
-        .transactions li {
+        .transactions form {
             display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            border-bottom: 1px solid #ddd;
-            padding: 5px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
-        form {
-            margin-top: 20px;
-        }
-
-        input, button {
+        .transactions form input {
+            flex: 1 1 calc(50% - 10px);
             padding: 10px;
             font-size: 1rem;
-            margin: 5px;
+            box-sizing: border-box;
         }
 
-        button {
+        .transactions form button {
+            flex: 1 1 100%;
+            padding: 10px 20px;
+            font-size: 1rem;
             background: #333;
             color: white;
             border: none;
             cursor: pointer;
+            border-radius: 5px;
         }
 
-        button:hover {
-            background: #555;
+        .transactions .entries {
+            margin-top: 20px;
+        }
+
+        .transactions .entries ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+        }
+
+        .transactions .entries li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.9rem;
+        }
+
+        .transactions .entries li button {
+            background: #ff4d4d;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .transactions .entries li button:hover {
+            background: #cc0000;
+        }
+
+        .transaction-summary {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 1rem;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>Gestion des Transactions</h1>
 
-    <!-- Message d'erreur en cas de problème -->
-    <div id="error" class="error" style="display: none;">
-        Vous n'avez pas accès. Vérifiez votre token.
+    <div class="countdown">
+        <div class="card-container">
+            <div class="card" id="days">00</div>
+            <div class="label">Jours</div>
+        </div>
+        <div class="card-container">
+            <div class="card" id="hours">00</div>
+            <div class="label">Heures</div>
+        </div>
+        <div class="card-container">
+            <div class="card" id="minutes">00</div>
+            <div class="label">Minutes</div>
+        </div>
+        <div class="card-container">
+            <div class="card" id="seconds">00</div>
+            <div class="label">Secondes</div>
+        </div>
     </div>
 
-    <!-- Contenu principal (masqué par défaut) -->
-    <div id="app" style="display: none;">
-        <h3>Résumé des Transactions</h3>
-        <div id="transactionSummary">Chargement...</div>
-        <ul id="transactionList"></ul>
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+        <div class="progress-text" id="progressText">0%</div>
+    </div>
+
+    <div class="transactions">
+        <h3>Gestion des Transactions</h3>
         <form id="transactionForm">
             <input type="text" id="label" placeholder="Label (ex : Salaire, Achat)" required />
             <input type="number" id="value" placeholder="Valeur (€)" required />
             <button type="submit">Ajouter</button>
         </form>
+
+        <div class="entries">
+            <ul id="transactionList"></ul>
+        </div>
+
+        <div class="transaction-summary" id="transactionSummary">Entrées : 0 € / Sorties : 0 €</div>
     </div>
 
     <script>
-        const API_URL = "https://ski-api-wkyg.onrender.com";
+        const targetDate = new Date("2025-02-15T00:00:00").getTime();
+        let totalInflows = 0;
+        let totalOutflows = 0;
+        const transactions = [];
 
-        // Récupérer le token depuis les paramètres de l'URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get("token");
-
-        // Vérifier si le token est présent dans l'URL
-        if (!token) {
-            document.getElementById("error").textContent = "Token manquant. Ajoutez ?token=VOTRE_TOKEN à l'URL.";
-            document.getElementById("error").style.display = "block";
-            throw new Error("Token manquant");
-        }
-
-        // Vérification du token
-        async function checkAccess() {
-            try {
-                const response = await fetch(`${API_URL}/test-token?token=${token}`);
-                if (!response.ok) throw new Error("Token invalide");
-                document.getElementById("app").style.display = "block";
-                document.getElementById("error").style.display = "none";
-                loadTransactions(); // Charger les transactions après validation
-            } catch (error) {
-                document.getElementById("error").textContent = "Accès refusé : Token invalide.";
-                document.getElementById("error").style.display = "block";
-                document.getElementById("app").style.display = "none";
+        function updateCountdown() {
+            const now = Date.now();
+            const timeLeft = targetDate - now;
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                return;
             }
+            const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            document.getElementById("days").textContent = days.toString().padStart(2, "0");
+            document.getElementById("hours").textContent = hours.toString().padStart(2, "0");
+            document.getElementById("minutes").textContent = minutes.toString().padStart(2, "0");
+            document.getElementById("seconds").textContent = seconds.toString().padStart(2, "0");
         }
 
-        // Charger les transactions depuis l'API
-        async function loadTransactions() {
-            try {
-                const response = await fetch(`${API_URL}/transactions?token=${token}`);
-                if (!response.ok) throw new Error("Erreur lors du chargement des transactions");
-                const transactions = await response.json();
-                displayTransactions(transactions);
-            } catch (error) {
-                alert(`Erreur : ${error.message}`);
-            }
+        const countdownInterval = setInterval(updateCountdown, 1000);
+        updateCountdown();
+
+        function updateProgressBar() {
+            const progress = totalOutflows > 0 ? (totalInflows / totalOutflows) * 100 : 0;
+            document.getElementById("progressBar").style.width = `${Math.min(progress, 100)}%`;
+            document.getElementById("progressText").textContent = `${Math.min(progress, 100).toFixed(1)}%`;
         }
 
-        // Afficher les transactions
-        function displayTransactions(transactions) {
-            const transactionList = document.getElementById("transactionList");
-            transactionList.innerHTML = "";
-
-            let totalInflows = 0;
-            let totalOutflows = 0;
-
-            transactions.forEach((transaction) => {
-                const li = document.createElement("li");
-                li.textContent = `${transaction.label}: ${transaction.valeur} €`;
-                const deleteButton = document.createElement("button");
-                deleteButton.textContent = "Supprimer";
-                deleteButton.onclick = () => deleteTransaction(transaction.id);
-                li.appendChild(deleteButton);
-                transactionList.appendChild(li);
-
-                if (transaction.valeur > 0) totalInflows += transaction.valeur;
-                else totalOutflows += Math.abs(transaction.valeur);
-            });
-
-            document.getElementById("transactionSummary").textContent = 
-                `Entrées : ${totalInflows} € / Sorties : ${totalOutflows} €`;
-        }
-
-        // Ajouter une transaction via l'API
-        async function addTransaction(label, valeur) {
-            try {
-                const response = await fetch(`${API_URL}/transactions?token=${token}`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ label, valeur }),
-                });
-                if (!response.ok) throw new Error("Erreur lors de l'ajout de la transaction");
-                loadTransactions(); // Recharger les transactions
-            } catch (error) {
-                alert(`Erreur : ${error.message}`);
-            }
-        }
-
-        // Supprimer une transaction via l'API
-        async function deleteTransaction(id) {
-            try {
-                const response = await fetch(`${API_URL}/transactions/${id}?token=${token}`, {
-                    method: "DELETE",
-                });
-                if (!response.ok) throw new Error("Erreur lors de la suppression de la transaction");
-                loadTransactions(); // Recharger les transactions
-            } catch (error) {
-                alert(`Erreur : ${error.message}`);
-            }
-        }
-
-        // Gestion du formulaire pour ajouter une transaction
         document.getElementById("transactionForm").addEventListener("submit", (e) => {
             e.preventDefault();
             const label = document.getElementById("label").value;
-            const valeur = parseFloat(document.getElementById("value").value);
-            if (label && !isNaN(valeur)) {
-                addTransaction(label, valeur);
-                document.getElementById("transactionForm").reset();
-            } else {
-                alert("Veuillez remplir correctement le formulaire.");
+            const value = parseFloat(document.getElementById("value").value);
+            if (!isNaN(value)) {
+                transactions.push({ label, value });
+                value > 0 ? totalInflows += value : totalOutflows += Math.abs(value);
+                updateTransactionList();
+                updateProgressBar();
             }
+            e.target.reset();
         });
 
-        // Vérifier l'accès au démarrage
-        checkAccess();
+        function updateTransactionList() {
+            const list = document.getElementById("transactionList");
+            list.innerHTML = transactions.map((t, i) => `
+                <li>
+                    <span>${t.label}</span>
+                    <span>${t.value.toFixed(2)} €</span>
+                    <button onclick="removeTransaction(${i})">Supprimer</button>
+                </li>
+            `).join("");
+
+            document.getElementById("transactionSummary").textContent = `Entrées : ${totalInflows.toFixed(2)} € / Sorties : ${totalOutflows.toFixed(2)} €`;
+        }
+
+        function removeTransaction(index) {
+            const transaction = transactions.splice(index, 1)[0];
+            transaction.value > 0 ? totalInflows -= transaction.value : totalOutflows -= Math.abs(transaction.value);
+            updateTransactionList();
+            updateProgressBar();
+        }
     </script>
+
 </body>
 </html>
