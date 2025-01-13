@@ -47,7 +47,7 @@
             max-height: 100px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            font-size: 6vw;
+            font-size: 4vw; /* Réduction de la taille des chiffres */
             font-weight: bold;
             margin-bottom: 10px;
         }
@@ -209,33 +209,92 @@
     </div>
 
     <script>
-        const targetDate = new Date("2025-02-15T00:00:00").getTime();
-        let totalInflows = 0;
-        let totalOutflows = 0;
-        const transactions = [];
+        const API_URL = "https://ski-api-wkyg.onrender.com";
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get("token");
 
-        function updateCountdown() {
-            const now = Date.now();
-            const timeLeft = targetDate - now;
-            if (timeLeft <= 0) {
-                clearInterval(countdownInterval);
-                return;
-            }
-            const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
-            document.getElementById("days").textContent = days.toString().padStart(2, "0");
-            document.getElementById("hours").textContent = hours.toString().padStart(2, "0");
-            document.getElementById("minutes").textContent = minutes.toString().padStart(2, "0");
-            document.getElementById("seconds").textContent = seconds.toString().padStart(2, "0");
+        if (!token) {
+            alert("Token manquant. Ajoutez ?token=VOTRE_TOKEN à l'URL.");
+            throw new Error("Token manquant");
         }
 
-        const countdownInterval = setInterval(updateCountdown, 1000);
-        updateCountdown();
+        async function checkAccess() {
+            try {
+                const response = await fetch(`${API_URL}/test-token?token=${token}`);
+                if (!response.ok) throw new Error("Token invalide");
+                loadTransactions();
+            } catch (error) {
+                alert("Accès refusé : Token invalide.");
+                throw new Error("Accès refusé");
+            }
+        }
 
-        function updateProgressBar() {
+        async function loadTransactions() {
+            try {
+                const response = await fetch(`${API_URL}/transactions?token=${token}`);
+                if (!response.ok) throw new Error("Erreur lors du chargement des transactions");
+                const transactions = await response.json();
+                displayTransactions(transactions);
+            } catch (error) {
+                alert(`Erreur : ${error.message}`);
+            }
+        }
+
+        async function addTransaction(label, valeur) {
+            try {
+                const response = await fetch(`${API_URL}/transactions?token=${token}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ label, valeur }),
+                });
+                if (!response.ok) throw new Error("Erreur lors de l'ajout de la transaction");
+                loadTransactions();
+            } catch (error) {
+                alert(`Erreur : ${error.message}`);
+            }
+        }
+
+        async function deleteTransaction(id) {
+            try {
+                const response = await fetch(`${API_URL}/transactions/${id}?token=${token}`, {
+                    method: "DELETE",
+                });
+                if (!response.ok) throw new Error("Erreur lors de la suppression de la transaction");
+                loadTransactions();
+            } catch (error) {
+                alert(`Erreur : ${error.message}`);
+            }
+        }
+
+        function displayTransactions(transactions) {
+            const transactionList = document.getElementById("transactionList");
+            transactionList.innerHTML = "";
+
+            let totalInflows = 0;
+            let totalOutflows = 0;
+
+            transactions.forEach((transaction) => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <span>${transaction.label}</span>
+                    <span>${transaction.valeur > 0 ? "" : "-"}${Math.abs(transaction.valeur).toFixed(2)} €</span>
+                    <button onclick="deleteTransaction(${transaction.id})">Supprimer</button>
+                `;
+                transactionList.appendChild(li);
+
+                if (transaction.valeur > 0) totalInflows += transaction.valeur;
+                else totalOutflows += Math.abs(transaction.valeur);
+            });
+
+            document.getElementById("transactionSummary").textContent = 
+                `Entrées : ${totalInflows.toFixed(2)} € / Sorties : ${totalOutflows.toFixed(2)} €`;
+
+            updateProgressBar(totalInflows, totalOutflows);
+        }
+
+        function updateProgressBar(totalInflows, totalOutflows) {
             const progress = totalOutflows > 0 ? (totalInflows / totalOutflows) * 100 : 0;
             document.getElementById("progressBar").style.width = `${Math.min(progress, 100)}%`;
             document.getElementById("progressText").textContent = `${Math.min(progress, 100).toFixed(1)}%`;
@@ -244,35 +303,16 @@
         document.getElementById("transactionForm").addEventListener("submit", (e) => {
             e.preventDefault();
             const label = document.getElementById("label").value;
-            const value = parseFloat(document.getElementById("value").value);
-            if (!isNaN(value)) {
-                transactions.push({ label, value });
-                value > 0 ? totalInflows += value : totalOutflows += Math.abs(value);
-                updateTransactionList();
-                updateProgressBar();
+            const valeur = parseFloat(document.getElementById("value").value);
+            if (!isNaN(valeur)) {
+                addTransaction(label, valeur);
+                e.target.reset();
+            } else {
+                alert("Valeur incorrecte.");
             }
-            e.target.reset();
         });
 
-        function updateTransactionList() {
-            const list = document.getElementById("transactionList");
-            list.innerHTML = transactions.map((t, i) => `
-                <li>
-                    <span>${t.label}</span>
-                    <span>${t.value.toFixed(2)} €</span>
-                    <button onclick="removeTransaction(${i})">Supprimer</button>
-                </li>
-            `).join("");
-
-            document.getElementById("transactionSummary").textContent = `Entrées : ${totalInflows.toFixed(2)} € / Sorties : ${totalOutflows.toFixed(2)} €`;
-        }
-
-        function removeTransaction(index) {
-            const transaction = transactions.splice(index, 1)[0];
-            transaction.value > 0 ? totalInflows -= transaction.value : totalOutflows -= Math.abs(transaction.value);
-            updateTransactionList();
-            updateProgressBar();
-        }
+        checkAccess();
     </script>
 
 </body>
