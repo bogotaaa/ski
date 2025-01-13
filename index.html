@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compte à Rebours</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #f4f4f4;
+        }
+
+        .countdown {
+            display: flex;
+            gap: 20px;
+        }
+
+        .card-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .card {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #333;
+            color: white;
+            width: 100px;
+            height: 130px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .label {
+            font-size: 1.2rem;
+            color: #333;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                width: 80px;
+                height: 100px;
+                font-size: 2.5rem;
+            }
+
+            .label {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="countdown">
+        <div class="card-container">
+            <div class="card" id="days">00</div>
+            <div class="label">Jours</div>
+        </div>
+        <div class="card-container">
+            <div class="card" id="hours">00</div>
+            <div class="label">Heures</div>
+        </div>
+        <div class="card-container">
+            <div class="card" id="minutes">00</div>
+            <div class="label">Minutes</div>
+        </div>
+        <div class="card-container">
+            <div class="card" id="seconds">00</div>
+            <div class="label">Secondes</div>
+        </div>
+    </div>
+
+    <script>
+        const targetDate = new Date("2025-02-15T00:00:00").getTime();
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const timeLeft = targetDate - now;
+
+            if (timeLeft <= 0) {
+                document.querySelectorAll(".card").forEach(el => el.textContent = "00");
+                clearInterval(interval);
+                return;
+            }
+
+            const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            document.getElementById("days").textContent = days.toString().padStart(2, "0");
+            document.getElementById("hours").textContent = hours.toString().padStart(2, "0");
+            document.getElementById("minutes").textContent = minutes.toString().padStart(2, "0");
+            document.getElementById("seconds").textContent = seconds.toString().padStart(2, "0");
+        }
+
+        const interval = setInterval(updateCountdown, 1000);
+        updateCountdown();
+    </script>
+
+</body>
+</html>
