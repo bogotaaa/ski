@@ -304,7 +304,7 @@
                 li.innerHTML = `
                     <span>${transaction.label}</span>
                     <span>${transaction.valeur > 0 ? "" : "-"}${Math.abs(transaction.valeur).toFixed(2)} €</span>
-                    <button onclick="deleteTransaction(${transaction.id})">Supprimer</button>
+                    <button onclick="deleteTransaction('${transaction.id}')">Supprimer</button>
                 `;
                 transactionList.appendChild(li);
 
@@ -348,13 +348,33 @@
         }
 
         function updateDailyTarget() {
-            const daysLeft = updateCountdown();
-            const remainingAmount = targetAmount - totalInflows;
-            const dailyTarget = remainingAmount > 0 && daysLeft > 0 ? remainingAmount / daysLeft : 0;
-
-            document.getElementById("dailyTarget").textContent = 
+            const now = Date.now();
+            const timeLeft = targetDate - now;
+        
+            if (timeLeft <= 0) {
+                // Si la date cible est dépassée
+                document.getElementById("dailyTarget").textContent = "Temps écoulé !";
+                return;
+            }
+        
+            // Calcul des jours restants
+            const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24)); // Nombre de jours restants
+            const remainingAmount = targetAmount - totalInflows; // Montant restant à atteindre
+        
+            if (remainingAmount <= 0) {
+                // Si l'objectif est déjà atteint
+                document.getElementById("dailyTarget").textContent = "Objectif atteint !";
+                return;
+            }
+        
+            // Calcul de l'objectif journalier
+            const dailyTarget = remainingAmount / daysLeft;
+        
+            // Mise à jour de l'affichage
+            document.getElementById("dailyTarget").textContent =
                 `Objectif journalier restant : ${dailyTarget.toFixed(2)} €`;
         }
+
 
         const countdownInterval = setInterval(updateCountdown, 1000);
         updateCountdown();
