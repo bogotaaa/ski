@@ -357,12 +357,14 @@
                 return;
             }
         
-            // Calcul des jours restants
-            const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24)); // Nombre de jours restants
-            const remainingAmount = targetAmount - totalInflows; // Montant restant à atteindre
+            // Calcul des jours restants (minimum 1 jour)
+            const daysLeft = Math.max(1, Math.ceil(timeLeft / (1000 * 60 * 60 * 24)));
         
-            if (remainingAmount <= 0) {
-                // Si l'objectif est déjà atteint
+            // Montant restant à couvrir
+            const remainingAmount = Math.max(0, totalOutflows - totalInflows);
+        
+            if (remainingAmount === 0) {
+                // Si les entrées couvrent déjà les sorties
                 document.getElementById("dailyTarget").textContent = "Objectif atteint !";
                 return;
             }
@@ -374,6 +376,7 @@
             document.getElementById("dailyTarget").textContent =
                 `Objectif journalier restant : ${dailyTarget.toFixed(2)} €`;
         }
+
 
 
         const countdownInterval = setInterval(updateCountdown, 1000);
