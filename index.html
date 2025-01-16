@@ -354,7 +354,7 @@
 
             transactions.forEach((transaction) => {
                 const li = document.createElement("li");
-                const [year, month, day] = dateInput.split("-");
+                const [year, month, day] = transaction.date.split("-");
                 const formattedDate = `${day}/${month}/${year.slice(2)}`; // Format DD/MM/YY
                 li.innerHTML = `
                     <span class="date">${formattedDate || "N/A"}</span>
