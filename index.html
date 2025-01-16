@@ -269,6 +269,7 @@
 
         <div class="transaction-summary" id="transactionSummary">Entrées : 0 € / Sorties : 0 €</div>
         <div class="daily-target" id="dailyTarget">Objectif du jour : 0 €</div>
+        <div class="expense-list" id="expenseList"></div>
     </div>
 
     <script>
@@ -345,13 +346,82 @@
             }
         }
 
+        function displayExpensesWithCompletion(transactions, totalInflows) {
+            const expenseList = document.getElementById("expenseList");
+            expenseList.innerHTML = ""; // Réinitialise la liste
+    
+            // Filtrer uniquement les dépenses (valeurs négatives) et trier par montant croissant
+            const expenses = transactions
+                .filter(transaction => transaction.valeur < 0)
+                .sort((a, b) => Math.abs(a.valeur) - Math.abs(b.valeur));
+    
+            let availableFunds = totalInflows;
+    
+            expenses.forEach(expense => {
+                const expenseAmount = Math.abs(expense.valeur);
+                const completion = Math.min(availableFunds / expenseAmount, 1); // Proportion couverte
+                availableFunds -= expenseAmount * completion; // Réduire les fonds disponibles
+    
+                const expenseItem = document.createElement("div");
+                expenseItem.classList.add("expense-item");
+    
+                // Contenu de l'élément
+                expenseItem.innerHTML = `
+                    <div class="expense-label">${expense.label} - ${expenseAmount.toFixed(2)} €</div>
+                    <div class="expense-progress-container">
+                        <div class="expense-progress-bar" style="width: ${(completion * 100).toFixed(1)}%;"></div>
+                    </div>
+                    <div class="expense-completion">${(completion * expenseAmount).toFixed(2)} € / ${expenseAmount.toFixed(2)} €</div>
+                `;
+    
+                expenseList.appendChild(expenseItem);
+            });
+    
+            // Styles pour les jauges
+            const style = document.createElement("style");
+            style.textContent = `
+                .expense-item {
+                    margin: 10px 0;
+                    padding: 10px;
+                    border: 1px solid #ddd;
+                    border-radius: 5px;
+                    background: #fff;
+                }
+                .expense-label {
+                    font-size: 0.9rem;
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                }
+                .expense-progress-container {
+                    width: 100%;
+                    height: 20px;
+                    background: #eee;
+                    border-radius: 10px;
+                    overflow: hidden;
+                    position: relative;
+                }
+                .expense-progress-bar {
+                    height: 100%;
+                    background: #4caf50;
+                    transition: width 0.5s ease;
+                }
+                .expense-completion {
+                    font-size: 0.8rem;
+                    color: #555;
+                    margin-top: 5px;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Modifier la fonction displayTransactions pour inclure l'affichage des dépenses
         function displayTransactions(transactions) {
             const transactionList = document.getElementById("transactionList");
             transactionList.innerHTML = "";
-
+    
             totalInflows = 0;
             totalOutflows = 0;
-
+    
             transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
             
             transactions.forEach((transaction) => {
@@ -365,16 +435,17 @@
                     <button onclick="deleteTransaction('${transaction.id}')">Supprimer</button>
                 `;
                 transactionList.appendChild(li);
-
+    
                 if (transaction.valeur > 0) totalInflows += transaction.valeur;
                 else totalOutflows += Math.abs(transaction.valeur);
             });
-
+    
             document.getElementById("transactionSummary").textContent = 
                 `Entrées : ${totalInflows.toFixed(2)} € / Sorties : ${totalOutflows.toFixed(2)} €`;
-
+    
             updateProgressBar(totalInflows, totalOutflows);
             updateDailyTarget();
+            displayExpensesWithCompletion(transactions, totalInflows);
         }
 
         function updateProgressBar(totalInflows, totalOutflows) {
