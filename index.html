@@ -41,13 +41,13 @@
             align-items: center;
             background: #333;
             color: white;
-            width: 10vw;
-            height: 12vw;
-            max-width: 60px;
-            max-height: 70px;
+            width: 20vw;
+            height: 25vw;
+            max-width: 80px;
+            max-height: 100px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            font-size: 3vw; /* Taille ajustée */
+            font-size: 2vw; /* Réduction de la taille des chiffres */
             font-weight: bold;
             margin-bottom: 10px;
         }
@@ -58,44 +58,46 @@
             text-transform: uppercase;
         }
 
-        .spinner {
-            position: fixed;
+        .progress-container {
+            width: 100%;
+            max-width: 400px;
+            height: 40px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background: #4caf50;
+            transition: width 0.5s ease;
+            position: absolute;
             top: 0;
             left: 0;
+        }
+
+        .progress-text {
+            position: absolute;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            display: none;
+            display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
-        }
-
-        .spinner.active {
-            display: flex;
-        }
-
-        .spinner div {
-            border: 4px solid #ccc;
-            border-top: 4px solid #333;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
+            font-size: 1rem;
+            font-weight: bold;
+            color: #333;
         }
 
         .transactions {
             width: 100%;
             max-width: 400px;
+        }
+
+        .transactions h3 {
+            text-align: center;
         }
 
         .transactions form {
@@ -106,7 +108,7 @@
         }
 
         .transactions form input {
-            flex: 1 1 calc(33.33% - 10px);
+            flex: 1 1 calc(50% - 10px);
             padding: 10px;
             font-size: 1rem;
             box-sizing: border-box;
@@ -149,44 +151,41 @@
             text-align: left;
         }
 
-        .transactions .entries li span.date {
+        .transactions .entries li span:nth-child(2) {
+            text-align: right;
+        }
+
+        .transactions .entries li button {
+            background: #ff4d4d;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .transactions .entries li button:hover {
+            background: #cc0000;
+        }
+
+        .transaction-summary {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 1rem;
             font-weight: bold;
         }
 
-        .completion-bars {
+        .daily-target {
+            text-align: center;
             margin-top: 20px;
-        }
-
-        .completion-bar {
-            margin-bottom: 10px;
-        }
-
-        .completion-bar span {
-            display: block;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-        }
-
-        .completion-bar div {
-            background: #ddd;
-            height: 20px;
-            border-radius: 5px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .completion-bar div div {
-            height: 100%;
-            background: #4caf50;
-            width: 0;
-            transition: width 0.5s ease;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #333;
         }
     </style>
 </head>
 <body>
-    <div class="spinner" id="spinner">
-        <div></div>
-    </div>
 
     <div class="countdown">
         <div class="card-container">
@@ -207,11 +206,16 @@
         </div>
     </div>
 
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+        <div class="progress-text" id="progressText">0%</div>
+    </div>
+
     <div class="transactions">
+        <h3>Gestion des Transactions</h3>
         <form id="transactionForm">
             <input type="text" id="label" placeholder="Label (ex : Salaire, Achat)" required />
             <input type="number" step="0.01" id="value" placeholder="Valeur (€)" required />
-            <input type="date" id="date" required />
             <button type="submit">Ajouter</button>
         </form>
 
@@ -219,27 +223,179 @@
             <ul id="transactionList"></ul>
         </div>
 
-        <div class="daily-target" id="dailyTarget">Objectif du jour</div>
-        <div class="completion-bars" id="completionBars"></div>
+        <div class="transaction-summary" id="transactionSummary">Entrées : 0 € / Sorties : 0 €</div>
+        <div class="daily-target" id="dailyTarget">Objectif journalier restant : 0 €</div>
     </div>
 
     <script>
-        let isLoading = false;
-        const spinner = document.getElementById("spinner");
+        const API_URL = "https://ski-api-wkyg.onrender.com";
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get("token");
 
-        function toggleSpinner(active) {
-            isLoading = active;
-            spinner.classList.toggle("active", active);
+        const targetDate = new Date("2025-02-15T00:00:00").getTime();
+        let totalInflows = 0;
+        let totalOutflows = 0;
+        const targetAmount = 1000; // Montant à atteindre
+
+        if (!token) {
+            alert("Token manquant. Ajoutez ?token=VOTRE_TOKEN à l'URL.");
+            throw new Error("Token manquant");
         }
+
+        async function checkAccess() {
+            try {
+                const response = await fetch(`${API_URL}/test-token?token=${token}`);
+                if (!response.ok) throw new Error("Token invalide");
+                loadTransactions();
+            } catch (error) {
+                alert("Accès refusé : Token invalide.");
+                throw new Error("Accès refusé");
+            }
+        }
+
+        async function loadTransactions() {
+            try {
+                const response = await fetch(`${API_URL}/transactions?token=${token}`);
+                if (!response.ok) throw new Error("Erreur lors du chargement des transactions");
+                const transactions = await response.json();
+                displayTransactions(transactions);
+            } catch (error) {
+                alert(`Erreur : ${error.message}`);
+            }
+        }
+
+        async function addTransaction(label, valeur) {
+            try {
+                const response = await fetch(`${API_URL}/transactions?token=${token}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ label, valeur }),
+                });
+                if (!response.ok) throw new Error("Erreur lors de l'ajout de la transaction");
+                loadTransactions();
+            } catch (error) {
+                alert(`Erreur : ${error.message}`);
+            }
+        }
+
+        async function deleteTransaction(id) {
+            try {
+                const response = await fetch(`${API_URL}/transactions/${id}?token=${token}`, {
+                    method: "DELETE",
+                });
+                if (!response.ok) throw new Error("Erreur lors de la suppression de la transaction");
+                loadTransactions();
+            } catch (error) {
+                alert(`Erreur : ${error.message}`);
+            }
+        }
+
+        function displayTransactions(transactions) {
+            const transactionList = document.getElementById("transactionList");
+            transactionList.innerHTML = "";
+
+            totalInflows = 0;
+            totalOutflows = 0;
+
+            transactions.forEach((transaction) => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <span>${transaction.label}</span>
+                    <span>${transaction.valeur > 0 ? "" : "-"}${Math.abs(transaction.valeur).toFixed(2)} €</span>
+                    <button onclick="deleteTransaction('${transaction.id}')">Supprimer</button>
+                `;
+                transactionList.appendChild(li);
+
+                if (transaction.valeur > 0) totalInflows += transaction.valeur;
+                else totalOutflows += Math.abs(transaction.valeur);
+            });
+
+            document.getElementById("transactionSummary").textContent = 
+                `Entrées : ${totalInflows.toFixed(2)} € / Sorties : ${totalOutflows.toFixed(2)} €`;
+
+            updateProgressBar(totalInflows, totalOutflows);
+            updateDailyTarget();
+        }
+
+        function updateProgressBar(totalInflows, totalOutflows) {
+            const progress = totalOutflows > 0 ? (totalInflows / totalOutflows) * 100 : 0;
+            document.getElementById("progressBar").style.width = `${Math.min(progress, 100)}%`;
+            document.getElementById("progressText").textContent = `${Math.min(progress, 100).toFixed(1)}%`;
+        }
+
+        function updateCountdown() {
+            const now = Date.now();
+            const timeLeft = targetDate - now;
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                document.querySelectorAll(".card").forEach(card => card.textContent = "00");
+                return;
+            }
+
+            const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            document.getElementById("days").textContent = String(days).padStart(2, '0');
+            document.getElementById("hours").textContent = String(hours).padStart(2, '0');
+            document.getElementById("minutes").textContent = String(minutes).padStart(2, '0');
+            document.getElementById("seconds").textContent = String(seconds).padStart(2, '0');
+
+            return days;
+        }
+
+        function updateDailyTarget() {
+            const now = Date.now();
+            const timeLeft = targetDate - now;
+        
+            if (timeLeft <= 0) {
+                // Si la date cible est dépassée
+                document.getElementById("dailyTarget").textContent = "Temps écoulé !";
+                return;
+            }
+        
+            // Calcul des jours restants (minimum 1 jour)
+            const daysLeft = Math.max(1, Math.ceil(timeLeft / (1000 * 60 * 60 * 24)));
+        
+            // Montant restant à couvrir
+            const remainingAmount = Math.max(0, totalOutflows - totalInflows);
+        
+            if (remainingAmount === 0) {
+                // Si les entrées couvrent déjà les sorties
+                document.getElementById("dailyTarget").textContent = "Objectif atteint !";
+                return;
+            }
+        
+            // Calcul de l'objectif journalier
+            const dailyTarget = remainingAmount / daysLeft;
+        
+            // Mise à jour de l'affichage
+            document.getElementById("dailyTarget").textContent =
+                `Objectif journalier restant : ${dailyTarget.toFixed(2)} €`;
+        }
+
+
+
+        const countdownInterval = setInterval(updateCountdown, 1000);
+        updateCountdown();
 
         document.getElementById("transactionForm").addEventListener("submit", (e) => {
             e.preventDefault();
-            toggleSpinner(true);
-
-            // Ajout de logique pour gérer les transactions ici
-
-            toggleSpinner(false);
+            const label = document.getElementById("label").value;
+            const valeur = parseFloat(document.getElementById("value").value);
+            if (!isNaN(valeur)) {
+                addTransaction(label, valeur);
+                e.target.reset();
+            } else {
+                alert("Valeur incorrecte.");
+            }
         });
+
+        checkAccess();
     </script>
+
 </body>
 </html>
