@@ -354,8 +354,10 @@
 
             transactions.forEach((transaction) => {
                 const li = document.createElement("li");
+                const [year, month, day] = dateInput.split("-");
+                const formattedDate = `${day}/${month}/${year.slice(2)}`; // Format DD/MM/YY
                 li.innerHTML = `
-                    <span class="date">${transaction.date || "N/A"}</span>
+                    <span class="date">${formattedDate || "N/A"}</span>
                     <span>${transaction.label}</span>
                     <span>${transaction.valeur > 0 ? "" : "-"}${Math.abs(transaction.valeur).toFixed(2)} €</span>
                     <button onclick="deleteTransaction('${transaction.id}')">Supprimer</button>
@@ -439,6 +441,11 @@
         const countdownInterval = setInterval(updateCountdown, 1000);
         updateCountdown();
 
+        document.addEventListener("DOMContentLoaded", () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById("date").value = today;
+        });
+        
         document.getElementById("transactionForm").addEventListener("submit", (e) => {
             e.preventDefault();
             const label = document.getElementById("label").value;
@@ -447,6 +454,8 @@
             if (!isNaN(valeur) && date) {
                 addTransaction(label, valeur, date);
                 e.target.reset();
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById("date").value = today;
             } else {
                 alert("Valeur ou date incorrecte.");
             }
